@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StoryWeaver AI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=JetBrains+Mono:wght@300;400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080610;--surface:#0f0c1a;--card:#161228;--border:#251f3a;--border2:#302850;
+  --accent:#b57bee;--gold:#e8a94a;--rose:#f06080;--cyan:#38c8e8;--green:#50d890;
+  --orange:#f07840;--spicy:#ff5577;--text:#ddd0f5;--muted:#6b5f8a;--muted2:#9080b8;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 15% 5%,rgba(181,123,238,.09) 0%,transparent 65%),radial-gradient(ellipse 50% 40% at 85% 85%,rgba(240,96,128,.08) 0%,transparent 65%),radial-gradient(ellipse 40% 60% at 50% 40%,rgba(56,200,232,.04) 0%,transparent 65%);pointer-events:none;z-index:0}
+
+header{text-align:center;padding:2rem 1rem .8rem;position:relative;z-index:2;width:100%}
+.title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.9rem,5vw,3rem);font-weight:700;background:linear-gradient(130deg,var(--accent),var(--rose),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.01em;line-height:1.1}
+.subtitle{font-size:.65rem;color:var(--muted);margin-top:.4rem;letter-spacing:.18em;text-transform:uppercase}
+
+.toolbar{width:100%;max-width:720px;padding:.6rem 1rem;position:relative;z-index:2}
+.toolbar-row{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;align-items:center}
+.toolbar-row+.toolbar-row{margin-top:.45rem}
+.genre-btn{border:none;border-radius:999px;padding:.36rem .9rem;font-family:'JetBrains Mono',monospace;font-size:.66rem;cursor:pointer;transition:all .2s ease;letter-spacing:.04em}
+.genre-btn[data-genre="plot_twist"]{background:#251540;color:var(--accent);border:1px solid #4a2d7a}
+.genre-btn[data-genre="cinematic"]{background:#0e1428;color:var(--cyan);border:1px solid #1a3050}
+.genre-btn[data-genre="romantic"]{background:#280e18;color:var(--rose);border:1px solid #6a2040}
+.genre-btn[data-genre="melodrama"]{background:#281a08;color:var(--gold);border:1px solid #684510}
+.genre-btn[data-genre="sitcom"]{background:#0e2014;color:var(--green);border:1px solid #206030}
+.genre-btn[data-genre="thriller"]{background:#280e08;color:var(--orange);border:1px solid #682210}
+.genre-btn:hover{transform:translateY(-2px);filter:brightness(1.25);box-shadow:0 4px 16px rgba(0,0,0,.5)}
+.genre-btn.active{transform:scale(1.06);filter:brightness(1.5);box-shadow:0 0 14px currentColor}
+
+.spicy-toggle{display:flex;align-items:center;gap:.45rem;background:#1e0810;border:1px solid #4a1020;border-radius:999px;padding:.36rem .85rem;cursor:pointer;font-size:.66rem;font-family:'JetBrains Mono',monospace;color:#c04060;transition:all .25s;user-select:none}
+.spicy-toggle:hover{border-color:#802040;filter:brightness(1.2)}
+.spicy-toggle.on{background:#2e0818;border-color:var(--spicy);color:var(--spicy);box-shadow:0 0 12px rgba(255,85,119,.25)}
+.spicy-dot{width:6px;height:6px;border-radius:50%;background:currentColor;transition:all .3s}
+.spicy-toggle.on .spicy-dot{animation:pulse 1.2s infinite}
+
+.reset-btn{display:flex;align-items:center;gap:.35rem;background:#12101c;border:1px solid var(--border2);border-radius:999px;padding:.36rem .8rem;cursor:pointer;font-size:.66rem;font-family:'JetBrains Mono',monospace;color:var(--muted2);transition:all .2s}
+.reset-btn:hover{border-color:#e05050;color:#e05050;background:#1e0808}
+
+.active-badge-row{min-height:24px;display:flex;align-items:center;justify-content:center;gap:.5rem;font-size:.63rem;color:var(--muted);padding:.2rem 1rem .35rem;position:relative;z-index:2}
+.active-badge{display:none;align-items:center;gap:.3rem;background:var(--card);border:1px solid var(--border2);border-radius:999px;padding:.18rem .6rem;font-size:.62rem;animation:fadeIn .3s}
+.active-badge.show{display:flex}
+.badge-dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse 1.5s infinite}
+
+/* ── ONBOARDING ── */
+#onboarding{position:fixed;inset:0;background:rgba(8,6,16,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;padding:1.2rem;animation:fadeIn .4s;overflow-y:auto}
+.ob-card{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:1.8rem;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.ob-step{display:none}.ob-step.active{display:block;animation:slideUp .3s}
+.ob-title{font-family:'Cormorant Garamond',serif;font-size:1.55rem;font-weight:700;color:var(--accent);margin-bottom:.35rem}
+.ob-sub{font-size:.7rem;color:var(--muted2);line-height:1.7;margin-bottom:1.1rem}
+.ob-label{font-size:.63rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.35rem}
+.ob-input{width:100%;background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:.65rem .85rem;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.76rem;outline:none;transition:border-color .2s;resize:none}
+.ob-input:focus{border-color:var(--accent)}
+.ob-input::placeholder{color:var(--muted)}
+.ob-btn{width:100%;margin-top:.85rem;padding:.72rem;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--rose));color:#fff;font-family:'JetBrains Mono',monospace;font-size:.76rem;cursor:pointer;transition:all .2s;letter-spacing:.05em}
+.ob-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.ob-btn-ghost{width:100%;margin-top:.45rem;padding:.62rem;border:1px solid var(--border2);border-radius:10px;background:transparent;color:var(--muted2);font-family:'JetBrains Mono',monospace;font-size:.7rem;cursor:pointer;transition:all .2s}
+.ob-btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+
+.story-grid{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin-bottom:.5rem}
+.story-pick{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.6rem .7rem;cursor:pointer;transition:all .2s;text-align:left}
+.story-pick:hover{border-color:var(--accent);background:#1e1635}
+.story-pick.selected{border-color:var(--accent);background:#1e1635;box-shadow:0 0 10px rgba(181,123,238,.2)}
+.story-pick-icon{font-size:1.1rem;margin-bottom:.15rem}
+.story-pick-name{font-size:.68rem;color:var(--text);font-weight:500}
+.story-pick-desc{font-size:.58rem;color:var(--muted);margin-top:.08rem;line-height:1.4}
+
+.char-slots{display:flex;flex-direction:column;gap:.45rem;margin-bottom:.45rem;max-height:210px;overflow-y:auto;padding-right:.2rem}
+.char-row{display:flex;gap:.4rem;align-items:center}
+.char-type-badge{font-size:.58rem;padding:.22rem .5rem;border-radius:999px;white-space:nowrap;flex-shrink:0;min-width:68px;text-align:center}
+.char-type-badge.male{background:#0e1428;border:1px solid #1a3050;color:var(--cyan)}
+.char-type-badge.female{background:#280e18;border:1px solid #6a2040;color:var(--rose)}
+.char-type-badge.side{background:#1a1625;border:1px solid var(--border2);color:var(--muted2)}
+.char-name-input{flex:1;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:.42rem .65rem;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.7rem;outline:none;transition:border-color .2s}
+.char-name-input:focus{border-color:var(--accent)}
+.char-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;padding:.2rem .3rem;transition:color .2s;line-height:1}
+.char-del:hover{color:var(--rose)}
+.add-char-row{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem}
+.add-char-btn{font-size:.6rem;padding:.28rem .65rem;border-radius:999px;cursor:pointer;border:1px dashed;background:transparent;font-family:'JetBrains Mono',monospace;transition:all .2s}
+.add-char-btn.male{color:var(--cyan);border-color:var(--cyan)}
+.add-char-btn.female{color:var(--rose);border-color:var(--rose)}
+.add-char-btn.side{color:var(--muted2);border-color:var(--muted2)}
+.add-char-btn:hover{filter:brightness(1.3);background:rgba(255,255,255,.04)}
+
+.ob-progress{display:flex;gap:.4rem;justify-content:center;margin-bottom:1.1rem}
+.ob-dot{width:7px;height:7px;border-radius:50%;background:var(--border2);transition:all .3s}
+.ob-dot.done{background:var(--accent)}
+
+.spicy-gate{background:linear-gradient(135deg,#1e0810,#280818);border:1px solid #6a1030;border-radius:12px;padding:1rem 1.1rem;margin-bottom:.6rem}
+.spicy-gate-title{font-size:.75rem;color:var(--spicy);margin-bottom:.3rem;font-weight:500}
+.spicy-gate-desc{font-size:.63rem;color:var(--muted2);line-height:1.65}
+.spicy-gate-check{display:flex;align-items:center;gap:.5rem;margin-top:.75rem;cursor:pointer;font-size:.65rem;color:var(--muted2)}
+.spicy-gate-check input{accent-color:var(--spicy);width:13px;height:13px;cursor:pointer}
+
+/* CONTEXT BAR */
+.story-context{display:none;width:100%;max-width:720px;padding:.25rem 1rem .15rem;position:relative;z-index:2}
+.story-context.visible{display:block}
+.context-pill{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.38rem .75rem;font-size:.61rem;color:var(--muted2)}
+.ctx-item{color:var(--text);opacity:.8}
+.ctx-sep{opacity:.3}
+
+/* CHAT */
+.chat-wrapper{width:100%;max-width:720px;padding:0 1rem;flex:1;position:relative;z-index:2}
+#chatbox{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.2rem;min-height:360px;max-height:430px;overflow-y:auto;display:flex;flex-direction:column;gap:.85rem;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.msg{display:flex;gap:.6rem;animation:slideUp .3s ease}
+.msg.user{flex-direction:row-reverse}
+.msg-group{display:flex;flex-direction:column;gap:.25rem;max-width:83%}
+.msg.user .msg-group{align-items:flex-end}
+.avatar{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.82rem;align-self:flex-end}
+.avatar.ai{background:linear-gradient(135deg,var(--accent),var(--rose))}
+.avatar.user{background:var(--card);border:1px solid var(--border2)}
+.bubble{padding:.72rem .9rem;border-radius:14px;line-height:1.7;font-size:.79rem}
+.ai .bubble{background:var(--card);border:1px solid var(--border2);border-bottom-left-radius:4px;font-family:'Cormorant Garamond',serif;font-size:.9rem;color:var(--text);white-space:pre-wrap}
+.user .bubble{background:linear-gradient(135deg,#261548,#131228);border:1px solid #352860;border-bottom-right-radius:4px;color:#ccc0e8;white-space:pre-wrap}
+.msg-actions{display:flex;gap:.28rem;opacity:0;transition:opacity .2s}
+.msg:hover .msg-actions{opacity:1}
+.msg-action-btn{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:.16rem .42rem;font-size:.58rem;color:var(--muted2);cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .15s}
+.msg-action-btn:hover{border-color:var(--accent);color:var(--accent)}
+.edit-area{background:var(--card);border:1px solid var(--accent);border-radius:10px;padding:.55rem .75rem;width:100%;font-family:'JetBrains Mono',monospace;font-size:.76rem;color:var(--text);outline:none;resize:none;line-height:1.6}
+.edit-btns{display:flex;gap:.35rem;margin-top:.28rem;justify-content:flex-end}
+.edit-save{font-size:.6rem;padding:.26rem .65rem;border-radius:7px;cursor:pointer;font-family:'JetBrains Mono',monospace;border:none;background:linear-gradient(135deg,var(--accent),var(--rose));color:#fff}
+.edit-cancel{font-size:.6rem;padding:.26rem .65rem;border-radius:7px;cursor:pointer;font-family:'JetBrains Mono',monospace;border:1px solid var(--border2);background:transparent;color:var(--muted2)}
+.edit-cancel:hover{border-color:var(--rose);color:var(--rose)}
+.genre-tag{display:inline-block;font-size:.58rem;font-family:'JetBrains Mono',monospace;padding:.13rem .45rem;border-radius:999px;margin-bottom:.3rem;letter-spacing:.1em;text-transform:uppercase}
+.typing{display:flex;align-items:center;gap:4px;padding:.65rem .85rem;background:var(--card);border:1px solid var(--border2);border-radius:14px;border-bottom-left-radius:4px;width:fit-content}
+.typing span{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:bounce 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;color:var(--muted);text-align:center;padding:2rem}
+.empty-state .icon{font-size:2.4rem;opacity:.45}
+.empty-state p{font-size:.72rem;line-height:1.7;max-width:300px}
+.input-area{display:flex;gap:.55rem;margin-top:.7rem;align-items:flex-end}
+#userInput{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:.75rem .9rem;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.78rem;resize:none;min-height:46px;max-height:130px;outline:none;transition:border-color .2s;line-height:1.55}
+#userInput:focus{border-color:var(--accent)}
+#userInput::placeholder{color:var(--muted)}
+.send-btn{background:linear-gradient(135deg,var(--accent),var(--rose));border:none;border-radius:12px;width:46px;height:46px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .2s;flex-shrink:0}
+.send-btn:hover{transform:scale(1.06);filter:brightness(1.15)}
+.send-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+footer{text-align:center;padding:.9rem 1rem;font-size:.6rem;color:var(--muted);position:relative;z-index:2;letter-spacing:.05em;max-width:720px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(8,6,16,.85);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem;animation:fadeIn .2s}
+.modal-box{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:1.4rem 1.6rem;max-width:360px;width:100%;text-align:center}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:1.25rem;color:var(--rose);margin-bottom:.5rem}
+.modal-desc{font-size:.7rem;color:var(--muted2);line-height:1.65;margin-bottom:1rem}
+.modal-btns{display:flex;gap:.5rem}
+.modal-confirm{flex:1;padding:.62rem;border:none;border-radius:9px;background:linear-gradient(135deg,#7a1020,var(--rose));color:#fff;font-family:'JetBrains Mono',monospace;font-size:.7rem;cursor:pointer}
+.modal-cancel{flex:1;padding:.62rem;border:1px solid var(--border2);border-radius:9px;background:transparent;color:var(--muted2);font-family:'JetBrains Mono',monospace;font-size:.7rem;cursor:pointer}
+.modal-cancel:hover{border-color:var(--accent);color:var(--accent)}
+
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+</style>
+</head>
+<body>
+
+<!-- ONBOARDING -->
+<div id="onboarding">
+  <div class="ob-card">
+    <div class="ob-progress">
+      <div class="ob-dot done" id="dot0"></div>
+      <div class="ob-dot" id="dot1"></div>
+      <div class="ob-dot" id="dot2"></div>
+      <div class="ob-dot" id="dot3"></div>
+    </div>
+
+    <!-- Step 0: Welcome -->
+    <div class="ob-step active" id="step0">
+      <div class="ob-title">✦ Welcome to StoryWeaver</div>
+      <div class="ob-sub">Your AI-powered interactive roleplay companion. Let's build your stage before the curtain rises.</div>
+      <button class="ob-btn" onclick="goStep(1)">Begin Setup →</button>
+    </div>
+
+    <!-- Step 1: Storyline -->
+    <div class="ob-step" id="step1">
+      <div class="ob-title">🎭 Your Storyline</div>
+      <div class="ob-sub">Got a story in mind? Write the premise below — or pick one of our presets to get started instantly.</div>
+      <div class="ob-label">Write your own premise</div>
+      <textarea class="ob-input" id="customStory" rows="3" placeholder="e.g. Two strangers stranded in a snowstorm who share a complicated past…"></textarea>
+      <div class="ob-label" style="margin-top:.85rem;text-align:center">— or pick a preset —</div>
+      <div class="story-grid" id="storyGrid"></div>
+      <button class="ob-btn" onclick="submitStory()">Continue →</button>
+      <button class="ob-btn-ghost" onclick="skipStory()">No story yet — surprise me</button>
+    </div>
+
+    <!-- Step 2: Characters -->
+    <div class="ob-step" id="step2">
+      <div class="ob-title">👥 Your Cast</div>
+      <div class="ob-sub">Add your characters one by one — male leads, female leads, and side roles. Names make the story feel real.</div>
+      <div class="add-char-row">
+        <button class="add-char-btn male" onclick="addChar('male')">+ Male Lead</button>
+        <button class="add-char-btn female" onclick="addChar('female')">+ Female Lead</button>
+        <button class="add-char-btn side" onclick="addChar('side')">+ Side Role</button>
+      </div>
+      <div class="char-slots" id="charSlots">
+        <div id="charEmpty" style="font-size:.65rem;color:var(--muted);text-align:center;padding:.5rem">No characters yet — add some above, or skip.</div>
+      </div>
+      <button class="ob-btn" onclick="submitChars()">Continue →</button>
+      <button class="ob-btn-ghost" onclick="goStep(3)">Skip — start without characters</button>
+    </div>
+
+    <!-- Step 3: Settings -->
+    <div class="ob-step" id="step3">
+      <div class="ob-title">⚙️ Final Settings</div>
+      <div class="ob-sub">One optional setting — you can change this anytime during the story.</div>
+      <div class="spicy-gate">
+        <div class="spicy-gate-title">🌶 Spicy Mode — Optional (18+)</div>
+        <div class="spicy-gate-desc">Enables romantic tension, passion, and adult-toned scenes between fictional adult characters. Content stays literary and evocative — not graphic. Toggle anytime in the chat toolbar.</div>
+        <label class="spicy-gate-check">
+          <input type="checkbox" id="spicyConsent">
+          I am 18+ and consent to adult-themed story content
+        </label>
+      </div>
+      <button class="ob-btn" onclick="finishSetup()">✦ Start My Story</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN UI -->
+<header>
+  <div class="title">✦ StoryWeaver AI</div>
+  <div class="subtitle">Roleplay · Genre Injection · Narrative Twists</div>
+</header>
+
+<div class="toolbar">
+  <div class="toolbar-row">
+    <button class="genre-btn" data-genre="plot_twist">⚡ Plot Twist</button>
+    <button class="genre-btn" data-genre="cinematic">🎬 Cinematic</button>
+    <button class="genre-btn" data-genre="romantic">🌹 Romantic</button>
+    <button class="genre-btn" data-genre="melodrama">🎭 Melodrama</button>
+    <button class="genre-btn" data-genre="sitcom">😂 Sitcom</button>
+    <button class="genre-btn" data-genre="thriller">🔪 Thriller</button>
+  </div>
+  <div class="toolbar-row" style="margin-top:.55rem">
+    <div class="spicy-toggle" id="spicyToggle" onclick="toggleSpicy()">
+      <span class="spicy-dot"></span>
+      <span id="spicyLabel">🌶 Spicy Off</span>
+    </div>
+    <div class="reset-btn" onclick="confirmReset()">↺ Restart Story</div>
+  </div>
+</div>
+
+<div class="active-badge-row">
+  <div class="active-badge" id="activeBadge">
+    <span class="badge-dot"></span>
+    <span id="activeBadgeText"></span>
+    <span style="cursor:pointer;opacity:.4;margin-left:4px" onclick="clearGenre()">✕</span>
+  </div>
+  <span id="noGenreHint" style="font-size:.65rem">Select a genre above to inject style into responses</span>
+</div>
+
+<div class="story-context" id="storyContext">
+  <div class="context-pill" id="contextPill"></div>
+</div>
+
+<div class="chat-wrapper">
+  <div id="chatbox">
+    <div class="empty-state" id="emptyState">
+      <div class="icon">🎭</div>
+      <p>Complete setup to begin your story.</p>
+    </div>
+  </div>
+  <div class="input-area">
+    <textarea id="userInput" placeholder="What happens next…" rows="1"
+      onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+  </div>
+</div>
+
+<footer>Powered by Claude · Your story, your rules · ✦ StoryWeaver AI</footer>
+
+<div id="resetModal" style="display:none">
+  <div class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-title">↺ Restart Story?</div>
+      <div class="modal-desc">This will clear your conversation and story setup. You'll return to the beginning to configure a new story.</div>
+      <div class="modal-btns">
+        <button class="modal-confirm" onclick="doReset()">Yes, Restart</button>
+        <button class="modal-cancel" onclick="closeResetModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PRESET_STORIES = [
+  {icon:'🏔️',name:'Snowbound Strangers',desc:'Two rivals trapped by a blizzard in a remote cabin.'},
+  {icon:'👑',name:'Royal Secrets',desc:'A servant discovers the prince\'s dangerous double life.'},
+  {icon:'🌌',name:'Last Signal',desc:'Two astronauts on a failing station, one escape pod.'},
+  {icon:'🎭',name:'The Understudy',desc:'An understudy falls for the lead on opening night.'},
+  {icon:'🕵️',name:'The Informant',desc:'A detective falling for their only witness.'},
+  {icon:'🌊',name:'Tide & Flame',desc:'A pirate captain and a lighthouse keeper\'s forbidden bond.'},
+];
+
+const GENRES = {
+  plot_twist:{label:'⚡ Plot Twist',color:'#b57bee',tag:'⚡ PLOT TWIST',tagBg:'#251540',
+    prompt:'Inject a shocking unexpected plot twist — hidden loyalties revealed, reality inverted, a secret exposed. Make it feel earned but surprising. Be dramatic.'},
+  cinematic:{label:'🎬 Cinematic',color:'#38c8e8',tag:'🎬 CINEMATIC',tagBg:'#0a1828',
+    prompt:'Write like a Hollywood director — vivid visual language, dramatic pacing, sweeping atmosphere. Slow-motion moments, epic gravitas, scenes described through a camera lens.'},
+  romantic:{label:'🌹 Romantic',color:'#f06080',tag:'🌹 ROMANTIC',tagBg:'#280e18',
+    prompt:'Focus on romantic tension: longing, charged silences, the electricity of nearness, poetic emotion, unspoken feelings. Every interaction carries weight.'},
+  melodrama:{label:'🎭 Melodrama',color:'#e8a94a',tag:'🎭 MELODRAMA',tagBg:'#281a08',
+    prompt:'Heighten EVERY emotion to theatrical extremes — tears, passionate declarations, deep betrayals. Characters wear hearts on sleeves. Think telenovela: beautiful, over-the-top, unforgettable.'},
+  sitcom:{label:'😂 Sitcom',color:'#50d890',tag:'😂 SITCOM',tagBg:'#0a1e0e',
+    prompt:'Play it for laughs — perfect comic timing, spiraling misunderstandings, physical comedy, quirky reactions. Add [LAUGHTER] cues where the audience would roar. Fun, escalating, absurd.'},
+  thriller:{label:'🔪 Thriller',color:'#f07840',tag:'🔪 THRILLER',tagBg:'#280e08',
+    prompt:'Build dread and tension. Short punchy sentences. Something is very wrong. Paranoia. A threat closing in. Every detail may matter. Urgency saturates everything.'},
+};
+
+let activeGenre=null, spicyMode=false, spicyUnlocked=false;
+let isLoading=false, chatHistory=[], msgElements=[];
+let storyConfig={storyline:'',characters:[]};
+let obStep=0, selectedPreset=null;
+
+// Build preset grid
+(function(){
+  const grid=document.getElementById('storyGrid');
+  PRESET_STORIES.forEach((s,i)=>{
+    const el=document.createElement('div');
+    el.className='story-pick';
+    el.innerHTML=`<div class="story-pick-icon">${s.icon}</div><div class="story-pick-name">${s.name}</div><div class="story-pick-desc">${s.desc}</div>`;
+    el.onclick=()=>{
+      document.querySelectorAll('.story-pick').forEach(x=>x.classList.remove('selected'));
+      el.classList.add('selected'); selectedPreset=i;
+      document.getElementById('customStory').value='';
+    };
+    grid.appendChild(el);
+  });
+})();
+
+function goStep(n){
+  document.getElementById('step'+obStep).classList.remove('active');
+  obStep=n;
+  document.getElementById('step'+obStep).classList.add('active');
+  for(let i=0;i<=3;i++) document.getElementById('dot'+i).classList.toggle('done',i<=obStep);
+}
+
+function submitStory(){
+  const custom=document.getElementById('customStory').value.trim();
+  if(custom) storyConfig.storyline=custom;
+  else if(selectedPreset!==null){const p=PRESET_STORIES[selectedPreset];storyConfig.storyline=p.name+': '+p.desc;}
+  else storyConfig.storyline='An open-ended interactive story — follow the user\'s lead.';
+  goStep(2);
+}
+function skipStory(){storyConfig.storyline='An open-ended interactive story — follow the user\'s lead.';goStep(2);}
+
+function addChar(type){
+  const empty=document.getElementById('charEmpty');
+  if(empty) empty.remove();
+  const slots=document.getElementById('charSlots');
+  const row=document.createElement('div'); row.className='char-row';
+  const badge=document.createElement('span');
+  badge.className='char-type-badge '+type;
+  badge.textContent=type==='male'?'♂ Male':type==='female'?'♀ Female':'◈ Side';
+  const inp=document.createElement('input');
+  inp.className='char-name-input'; inp.type='text';
+  inp.placeholder=type==='male'?'Male character name…':type==='female'?'Female character name…':'Side character name…';
+  const del=document.createElement('button'); del.className='char-del'; del.textContent='✕';
+  del.onclick=()=>{row.remove();if(!slots.querySelector('.char-row'))slots.innerHTML='<div id="charEmpty" style="font-size:.65rem;color:var(--muted);text-align:center;padding:.5rem">No characters yet — add some above, or skip.</div>';};
+  row.appendChild(badge); row.appendChild(inp); row.appendChild(del);
+  slots.appendChild(row); inp.focus();
+}
+
+function submitChars(){
+  storyConfig.characters=[];
+  document.querySelectorAll('.char-row').forEach(row=>{
+    const type=row.querySelector('.char-type-badge').classList.contains('male')?'male':row.querySelector('.char-type-badge').classList.contains('female')?'female':'side';
+    const name=row.querySelector('.char-name-input').value.trim();
+    if(name) storyConfig.characters.push({type,name});
+  });
+  goStep(3);
+}
+
+function finishSetup(){
+  spicyUnlocked=document.getElementById('spicyConsent').checked;
+  if(spicyUnlocked) spicyMode=true;
+  document.getElementById('onboarding').style.display='none';
+  renderContextBar(); updateSpicyUI(); kickoffStory();
+}
+
+function renderContextBar(){
+  const chars=storyConfig.characters.length?storyConfig.characters.map(c=>c.name).join(', '):'No cast set';
+  const story=storyConfig.storyline.length>55?storyConfig.storyline.slice(0,55)+'…':storyConfig.storyline;
+  document.getElementById('contextPill').innerHTML=`<span>📖</span><span class="ctx-item">${story}</span><span class="ctx-sep">|</span><span>👥</span><span class="ctx-item">${chars}</span>`;
+  document.getElementById('storyContext').classList.add('visible');
+}
+
+async function kickoffStory(){
+  isLoading=true; document.getElementById('sendBtn').disabled=true;
+  document.getElementById('emptyState')?.remove();
+  showTypingIndicator();
+  const charDesc=storyConfig.characters.length?'\nCast: '+storyConfig.characters.map(c=>`${c.name} (${c.type})`).join(', '):'';
+  const kickMsg=`Set the opening scene for this story: ${storyConfig.storyline}${charDesc}. Write an atmospheric immersive opening (2-3 paragraphs) that ends on a moment of anticipation — ready for the player to take over.`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:buildSystemPrompt(),messages:[{role:'user',content:kickMsg}]})});
+    const data=await res.json();
+    removeTypingIndicator();
+    const reply=data.content?.find(b=>b.type==='text')?.text||'The story begins…';
+    chatHistory.push({role:'user',content:kickMsg});
+    chatHistory.push({role:'assistant',content:reply});
+    appendMsg('ai',reply,null);
+  }catch(e){removeTypingIndicator();appendMsg('ai','✦ Your story awaits — type your first scene below.',null);}
+  isLoading=false; document.getElementById('sendBtn').disabled=false;
+  document.getElementById('userInput').focus();
+}
+
+// Genre buttons
+document.querySelectorAll('.genre-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const g=btn.dataset.genre;
+    if(activeGenre===g){clearGenre();return;}
+    activeGenre=g;
+    document.querySelectorAll('.genre-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const info=GENRES[g];
+    const badge=document.getElementById('activeBadge');
+    badge.style.color=info.color;
+    document.getElementById('activeBadgeText').textContent=info.label;
+    badge.classList.add('show');
+    document.getElementById('noGenreHint').style.display='none';
+  });
+});
+function clearGenre(){
+  activeGenre=null;
+  document.querySelectorAll('.genre-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('activeBadge').classList.remove('show');
+  document.getElementById('noGenreHint').style.display='';
+}
+
+// Spicy toggle
+function toggleSpicy(){
+  if(!spicyUnlocked){
+    const ok=confirm('🌶 Spicy Mode (18+)\n\nEnables romantic tension and adult-toned scenes between fictional adult characters. Content stays literary — not graphic.\n\nConfirm you are 18+ and consent?');
+    if(!ok)return; spicyUnlocked=true;
+  }
+  spicyMode=!spicyMode; updateSpicyUI();
+}
+function updateSpicyUI(){
+  const t=document.getElementById('spicyToggle'),l=document.getElementById('spicyLabel');
+  if(spicyMode){t.classList.add('on');l.textContent='🌶 Spicy ON';}
+  else{t.classList.remove('on');l.textContent='🌶 Spicy Off';}
+}
+
+// Reset
+function confirmReset(){document.getElementById('resetModal').style.display='block';}
+function closeResetModal(){document.getElementById('resetModal').style.display='none';}
+function doReset(){
+  closeResetModal();
+  chatHistory=[];msgElements=[];storyConfig={storyline:'',characters:[]};
+  activeGenre=null;spicyMode=false;spicyUnlocked=false;selectedPreset=null;
+  clearGenre();updateSpicyUI();
+  document.getElementById('storyContext').classList.remove('visible');
+  document.getElementById('chatbox').innerHTML='<div class="empty-state" id="emptyState"><div class="icon">🎭</div><p>Complete setup to begin your story.</p></div>';
+  document.getElementById('userInput').value='';
+  document.getElementById('step'+obStep).classList.remove('active');
+  obStep=0; document.getElementById('step0').classList.add('active');
+  for(let i=0;i<=3;i++) document.getElementById('dot'+i).classList.toggle('done',i===0);
+  document.getElementById('customStory').value='';
+  document.querySelectorAll('.story-pick').forEach(x=>x.classList.remove('selected'));
+  document.getElementById('charSlots').innerHTML='<div id="charEmpty" style="font-size:.65rem;color:var(--muted);text-align:center;padding:.5rem">No characters yet — add some above, or skip.</div>';
+  document.getElementById('spicyConsent').checked=false;
+  document.getElementById('onboarding').style.display='flex';
+}
+
+function buildSystemPrompt(){
+  const charDesc=storyConfig.characters.length?'\nCast: '+storyConfig.characters.map(c=>`${c.name} (${c.type})`).join(', '):'';
+  let sys=`You are a vivid collaborative interactive story narrator.\nPremise: ${storyConfig.storyline}${charDesc}\n\nYou are the narrator only — never act as the player. Continue the story based on what the user writes. Be immersive, descriptive, and engaging. Respond in 2–4 paragraphs.`;
+  if(activeGenre) sys+='\n\nGenre Injection: '+GENRES[activeGenre].prompt;
+  if(spicyMode) sys+='\n\nSpicy Mode active: You may write passionate, sensual, adult-toned romantic scenes between consenting adult fictional characters. Be evocative and emotionally charged — literary, not graphic.';
+  else sys+='\n\nKeep all content tasteful and appropriate for a general adult audience.';
+  return sys;
+}
+
+function appendMsg(role,text,genre){
+  const box=document.getElementById('chatbox');
+  const histIdx=chatHistory.length-1;
+  const wrap=document.createElement('div'); wrap.className='msg '+role;
+  const avatar=document.createElement('div'); avatar.className='avatar '+role; avatar.textContent=role==='ai'?'✦':'◉';
+  const group=document.createElement('div'); group.className='msg-group';
+  const bubble=document.createElement('div'); bubble.className='bubble';
+
+  if(genre&&role==='ai'){
+    const info=GENRES[genre];
+    const tag=document.createElement('div'); tag.className='genre-tag';
+    tag.style.cssText=`background:${info.tagBg};color:${info.color}`;
+    tag.textContent=info.tag; bubble.appendChild(tag);
+  }
+  const content=document.createElement('div'); content.textContent=text; bubble.appendChild(content);
+  group.appendChild(bubble);
+
+  if(role==='user'){
+    const actions=document.createElement('div'); actions.className='msg-actions';
+    const editBtn=document.createElement('button'); editBtn.className='msg-action-btn'; editBtn.textContent='✎ Edit';
+    editBtn.onclick=()=>enterEditMode(wrap,bubble,content,text,histIdx);
+    actions.appendChild(editBtn); group.appendChild(actions);
+  }
+
+  msgElements.push({el:wrap,histIdx,role});
+  wrap.appendChild(avatar); wrap.appendChild(group);
+  box.appendChild(wrap); box.scrollTop=box.scrollHeight;
+  return wrap;
+}
+
+function enterEditMode(wrap,bubble,contentEl,originalText,histIdx){
+  if(wrap.querySelector('.edit-area'))return;
+  bubble.style.display='none';
+  const ta=document.createElement('textarea'); ta.className='edit-area'; ta.value=originalText; ta.rows=3; autoResize(ta);
+  const btnRow=document.createElement('div'); btnRow.className='edit-btns';
+  const saveBtn=document.createElement('button'); saveBtn.className='edit-save'; saveBtn.textContent='✓ Save & Resend';
+  const cancelBtn=document.createElement('button'); cancelBtn.className='edit-cancel'; cancelBtn.textContent='Cancel';
+
+  saveBtn.onclick=async()=>{
+    const newText=ta.value.trim(); if(!newText)return;
+    contentEl.textContent=newText; bubble.style.display=''; ta.remove(); btnRow.remove();
+    chatHistory.splice(histIdx);
+    chatHistory.push({role:'user',content:newText});
+    const box=document.getElementById('chatbox');
+    const allMsgs=[...box.querySelectorAll('.msg')];
+    const thisIdx=allMsgs.indexOf(wrap);
+    allMsgs.forEach((m,i)=>{if(i>thisIdx)m.remove();});
+    msgElements=msgElements.filter(m=>allMsgs.indexOf(m.el)!==-1&&allMsgs.indexOf(m.el)<=thisIdx);
+    await sendWithText(newText);
+  };
+  cancelBtn.onclick=()=>{bubble.style.display='';ta.remove();btnRow.remove();};
+  btnRow.appendChild(saveBtn); btnRow.appendChild(cancelBtn);
+  wrap.querySelector('.msg-group').appendChild(ta);
+  wrap.querySelector('.msg-group').appendChild(btnRow);
+  ta.focus();
+}
+
+function showTypingIndicator(){
+  const box=document.getElementById('chatbox');
+  const wrap=document.createElement('div'); wrap.className='msg ai'; wrap.id='typingIndicator';
+  const av=document.createElement('div'); av.className='avatar ai'; av.textContent='✦';
+  const t=document.createElement('div'); t.className='typing'; t.innerHTML='<span></span><span></span><span></span>';
+  wrap.appendChild(av); wrap.appendChild(t); box.appendChild(wrap); box.scrollTop=box.scrollHeight;
+}
+function removeTypingIndicator(){document.getElementById('typingIndicator')?.remove();}
+
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,130)+'px';}
+
+async function sendMessage(){
+  if(isLoading)return;
+  const input=document.getElementById('userInput');
+  const text=input.value.trim(); if(!text)return;
+  input.value=''; input.style.height='auto';
+  document.getElementById('emptyState')?.remove();
+  chatHistory.push({role:'user',content:text});
+  appendMsg('user',text,null);
+  await sendWithText(text);
+}
+
+async function sendWithText(text){
+  isLoading=true;
+  document.getElementById('sendBtn').disabled=true;
+  document.getElementById('userInput').disabled=true;
+  showTypingIndicator();
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:buildSystemPrompt(),messages:chatHistory})});
+    const data=await res.json();
+    removeTypingIndicator();
+    const reply=data.content?.find(b=>b.type==='text')?.text||'The story continues…';
+    chatHistory.push({role:'assistant',content:reply});
+    appendMsg('ai',reply,activeGenre);
+  }catch(e){removeTypingIndicator();appendMsg('ai','✦ The narrative frayed — please try again.',null);}
+  isLoading=false;
+  document.getElementById('sendBtn').disabled=false;
+  document.getElementById('userInput').disabled=false;
+  document.getElementById('userInput').focus();
+}
+</script>
+</body>
+</html>
